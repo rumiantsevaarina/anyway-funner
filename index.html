@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Воронка AnyWay | Расчет шансов</title>
+    <style>
+        /* --- Обновленные Стили AnyWay (ТОЧНЫЕ ЦВЕТА: СЕРЫЙ/МЯТНЫЙ/ТЕМНО-СИНИЙ) --- */
+        :root {
+            /* 1. Светло-серый (Фон) - Blanc de Blanc */
+            --color-background: #E9E9E7; 
+            /* Чистый белый для контейнера - ОСТАВЛЯЕМ БЕЛЫЙ для контраста */
+            --color-container-bg: #FFFFFF; 
+            /* 3. Темно-синий (Основной текст, кнопки, H3, рамки) - Темный, контрастный цвет */
+            --color-secondary-dark: #1A1D2B; 
+            /* 2. Мятно-зеленый (H1, H2, Кнопка-ссылка) - Matcha Mist */
+            --color-header-mint: #C2D8C4; 
+            /* 3. Темно-синий (для H3, рамок, дедлайнов) - Основной контрастный акцент */
+            --color-accent-dark: #1A1D2B; 
+            /* Светлый текст (для кнопок и оверлея) */
+            --color-light-text: #FFFFFF; 
+            /* Цвет для оверлей-кнопки (более светлый оттенок темно-синего для 3D эффекта) */
+            --color-button-light-on-dark: #32354F; 
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: var(--color-background); /* Светло-серый Фон */
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 20px; 
+            color: var(--color-secondary-dark); 
+        }
+        .container { 
+            background: var(--color-container-bg); 
+            padding: 30px; 
+            border-radius: 15px; 
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1); 
+            max-width: 500px; 
+            width: 100%; 
+        }
+        .screen { display: none; animation: fadeIn 0.5s; }
+        .screen.active { display: block; }
+        
+        h1, h2 { color: var(--color-accent-dark); text-align: center; } /* H1, H2 - Темно-синие */
+        h3 { color: var(--color-accent-dark); } /* H3 - Темно-синий */
+        h1 { font-size: 26px; margin-bottom: 20px; }
+        
+        /* Стили для абзацев на Экране 4 */
+        #screen-4 p {
+            margin-bottom: 15px;
+        }
+
+        /* Общие кнопки (Темно-синие) */
+        .btn { 
+            display: block; 
+            width: 100%; 
+            padding: 15px; 
+            background: var(--color-secondary-dark); /* Темно-синий */
+            color: var(--color-light-text); 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 18px; 
+            cursor: pointer; 
+            margin-top: 25px; 
+            text-align: center; 
+            text-decoration: none; 
+            box-sizing: border-box; 
+            transition: background 0.3s, transform 0.1s;
+        }
+        .btn:hover { background: #32354F; } /* Немного светлее темно-синего при наведении */
+
+        /* Кнопка в оверлее (Осветленная/Контрастная) */
+        .overlay-text .btn { 
+            background: var(--color-button-light-on-dark); 
+            box-shadow: 0 5px 0 0 var(--color-header-mint); /* 3D эффект с мятной тенью */
+            margin-bottom: 5px;
+        }
+        .overlay-text .btn:hover {
+            background: var(--color-secondary-dark); /* Возвращение к основному темно-синему при наведении */
+            box-shadow: 0 2px 0 0 var(--color-header-mint);
+            transform: translateY(3px);
+        }
+
+        /* Кнопка в карточке олимпиады (Выделение ссылки) */
+        .olympiad-card .link-btn {
+            display: block; 
+            background: var(--color-header-mint); /* Мятный фон для выделения */
+            color: var(--color-secondary-dark) !important; /* Темно-синий текст */
+            padding: 10px;
+            margin-top: 15px;
+            border-radius: 6px;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+        .olympiad-card .link-btn:hover {
+            background: #D2E3D0; /* Легкое осветление мятного при наведении */
+        }
+
+
+        /* Формы */
+        label { display: block; margin-top: 15px; font-weight: bold; margin-bottom: 5px; color: var(--color-secondary-dark); }
+        select, input[type="text"] { 
+            background: #F8F8F8; 
+            color: var(--color-secondary-dark);
+            border: 1px solid var(--color-secondary-dark);
+            border-radius: 5px;
+            width: 100%; padding: 10px; box-sizing: border-box; 
+        }
+        
+        /* Список на Экране 1 (Маркеры Темно-синие) */
+        .list-check { text-align: left; margin: 20px 0; padding-left: 0; }
+        .list-check li { margin-bottom: 10px; list-style: none; padding-left: 30px; position: relative; }
+        .list-check li::before { 
+            content: "🔷"; 
+            position: absolute; 
+            left: 0; 
+            font-size: 18px; 
+            color: var(--color-secondary-dark); /* ТЕМНО-СИНИЙ (Подпись) */
+        } 
+
+        /* Карта Олимпиады */
+        .olympiad-card { 
+            border: 2px solid var(--color-accent-dark); /* Темно-синяя рамка */
+            padding: 15px; 
+            border-radius: 10px; 
+            margin-bottom: 20px; 
+            background: var(--color-container-bg); 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .deadline { color: var(--color-accent-dark); font-weight: bold; } /* Темно-синий дедлайн */
+        .olympiad-feature { font-style: italic; font-size: 14px; margin-top: 10px; color: #555; }
+        
+        /* Result Box (Шанс) */
+        .result-box { 
+            text-align: center; 
+            padding: 20px; 
+            background: var(--color-accent-dark); /* Темно-синий фон */
+            border-radius: 10px; 
+            margin: 20px 0; 
+            color: var(--color-light-text); 
+        }
+        .result-box h2 { 
+            color: var(--color-light-text); 
+        }
+        
+        /* Элементы блюра и оверлея */
+        .blur-box { 
+            filter: blur(2px); 
+            pointer-events: none; 
+            opacity: 0.8; 
+        }
+        .overlay-text { 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            background: rgba(26, 29, 43, 0.8); /* Темно-синий с прозрачностью 80% */
+            color: var(--color-light-text); 
+            padding: 20px; 
+            border-radius: 10px; 
+            text-align: center; 
+            width: 90%; 
+            z-index: 10;
+            border: 3px solid var(--color-header-mint); /* Мятная рамка */
+        }
+        .overlay-text h3 { color: var(--color-light-text); } 
+        .overlay-text ul li::before { content: "🔷"; color: var(--color-header-mint); } /* Иконки в оверлее мятные */
+
+        /* Логотип и изображения */
+        .logo { max-width: 150px; display: block; margin: 0 auto 10px; }
+        .mascot { display: block; max-width: 100px; margin: 20px auto 0; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <img src="AnyWay - стратегия поступления без ЕГЭ (1).png" alt="AnyWay Logo" class="logo"> 
+    <div id="screen-1" class="screen active">
+        <h1>Узнай свой реальный шанс поступить в вуз бесплатно</h1>
+        
+        <h3>А еще ты можешь:</h3>
+        <ul class="list-check">
+            <li>узнать к каким олимпиадам можно подготовиться самому с нуля за пару месяцев</li>
+            <li>понять какой вуз тебе подходит</li>
+            <li>определиться с профессией</li>
+            <li>забрать общую карту поступления</li>
+        </ul>
+
+        <button class="btn" onclick="nextScreen(2)">Рассчитать Шансы</button>
+        <img src="lv_0_20251204204754.png" alt="AnyWay Turtle" class="mascot">     </div>
+
+    <div id="screen-2" class="screen">
+        <h2>Шаг 1 из 3: Твои данные</h2>
+        
+        <label>Класс обучения:</label>
+        <select id="class-select">
+            <option value="8">8 класс</option>
+            <option value="9">9 класс</option>
+            <option value="10">10 класс</option>
+            <option value="11">11 класс</option>
+        </select>
+
+        <label>Предметы ЕГЭ (выбери профильные):</label>
+        <div class="checkbox-group">
+            <label><input type="checkbox" name="subjects" value="Математика"> Математика</label><br>
+            <label><input type="checkbox" name="subjects" value="Русский язык"> Русский язык</label><br>
+            <label><input type="checkbox" name="subjects" value="Информатика"> Информатика</label><br>
+            <label><input type="checkbox" name="subjects" value="Физика"> Физика</label><br>
+            <label><input type="checkbox" name="subjects" value="Химия"> Химия</label><br>
+            <label><input type="checkbox" name="subjects" value="История"> История</label><br>
+            <label><input type="checkbox" name="subjects" value="Обществознание"> Обществознание</label><br>
+            <label><input type="checkbox" name="subjects" value="Биология"> Биология</label><br>
+            <label><input type="checkbox" name="subjects" value="География"> География</label><br>
+            <label><input type="checkbox" name="subjects" value="Литература"> Литература</label><br>
+            <label><input type="checkbox" name="subjects" value="Английский язык"> Английский язык</label><br>
+            <label><input type="checkbox" name="subjects" value="Немецкий язык"> Немецкий язык</label><br>
+            <label><input type="checkbox" name="subjects" value="Французский язык"> Французский язык</label><br>
+            <label><input type="checkbox" name="subjects" value="Испанский язык"> Испанский язык</label><br>
+            <label><input type="checkbox" name="subjects" value="Китайский язык"> Китайский язык</label>
+        </div>
+
+        <label>ВУЗ Мечты:</label>
+        <select id="univer-select" onchange="toggleOtherInput('univer')">
+            <option value="premium_city">Я еще не выбрал — поступаю в КРУПНЫЙ город (миллионник)</option>
+            <option value="pro_city">Я еще не выбрал — поступаю в НЕКРУПНЫЙ город</option>
+            
+            <option disabled>--- ТОП ВУЗЫ (Premium) ---</option>
+            <option value="premium_univer">МФТИ (Физтех)</option>
+            <option value="premium_univer">МГИМО</option>
+            <option value="premium_univer">МГУ им. М. В. Ломоносова</option>
+            <option value="premium_univer">НИЯУ МИФИ</option>
+            <option value="premium_univer">МГТУ им. Н. Э. Баумана</option>
+            <option value="premium_univer">РАНХиГС</option>
+            <option value="premium_univer">ВШЭ (Высшая Школа Экономики)</option>
+            <option value="premium_univer">Сеченовский Университет (Первый Мед)</option>
+            <option value="premium_univer">РНИМУ им. Н. И. Пирогова (Второй Мед)</option>
+            <option value="premium_univer">МГЮА им. О. Е. Кутафина</option>
+            <option value="premium_univer">РГУ нефти и газа им. И. М. Губкина</option>
+            <option value="premium_univer">Университет ИТМО</option>
+            <option value="premium_univer">СПбГУ</option>
+            <option value="premium_univer">ПСПбГМУ им. акад. И. П. Павлова (Первый Мед)</option>
+            <option value="premium_univer">СПбПУ (Политех Петра Великого)</option>
+            <option value="premium_univer">СПГУ (Горный университет)</option>
+            <option value="premium_univer">НГУ (Новосибирск)</option>
+            <option value="premium_univer">НИ ТГУ (Томск)</option>
+            <option value="premium_univer">КФУ (Казань)</option>
+            <option value="premium_univer">УрФУ (Екатеринбург)</option>
+            
+            <option value="pro_univer">Другой вуз (введу сам)</option>
+        </select>
+        <input type="text" id="custom-univer" placeholder="Введите название вуза" style="display:none; margin-top:5px;">
+
+        <label>Специальность:</label>
+        <select id="spec-select" onchange="toggleOtherInput('spec')">
+            <option value="undefined">Я еще не определился</option>
+            <option disabled>--- ТОП Направления (Premium) ---</option>
+            <option value="premium_spec">Программная инженерия</option>
+            <option value="premium_spec">Прикладная математика и информатика</option>
+            <option value="premium_spec">Информационная безопасность</option>
+            <option value="premium_spec">Бизнес-информатика</option>
+            <option value="premium_spec">Востоковедение и африканистика</option>
+            <option value="premium_spec">Международные отношения</option>
+            <option value="premium_spec">Зарубежное регионоведение</option>
+            <option value="premium_spec">Лингвистика</option>
+            <option value="premium_spec">Перевод и переводоведение</option>
+            <option value="premium_spec">Фундаментальная и прикладная лингвистика</option>
+            <option value="premium_spec">Медиакоммуникации</option>
+            <option value="premium_spec">Реклама и связи с общественностью</option>
+            <option value="premium_spec">Журналистика</option>
+            <option value="premium_spec">Телевидение</option>
+            <option value="premium_spec">Юриспруденция</option>
+            <option value="premium_spec">Судебная и прокурорская деятельность</option>
+            <option value="premium_spec">Правовое обеспечение национальной безопасности</option>
+            <option value="premium_spec">Правоохранительная деятельность</option>
+            <option value="premium_spec">Судебная экспертиза</option>
+            <option value="economic_security">Экономическая безопасность</option>
+            <option value="customs">Таможенное дело</option>
+            <option value="gmu">Государственное и муниципальное управление (ГМУ)</option>
+            <option value="economy">Экономика</option>
+            <option value="management">Менеджмент</option>
+            <option value="dentistry">Стоматология</option>
+            <option value="general_medicine">Лечебное дело</option>
+            <option value="oil_and_gas">Нефтегазовое дело</option>
+            <option value="mining">Горное дело</option>
+            <option value="architecture">Архитектура</option>
+            <option value="arch_design">Дизайн архитектурной среды</option>
+            <option value="design">Дизайн (графический, коммуникационный)</option>
+            <option value="political_science">Политология</option>
+            <option value="conflictology">Конфликтология</option>
+            <option value="service_psychology">Психология служебной деятельности</option>
+            
+            <option value="pro_spec">Другая специальность (введу сам)</option>
+        </select>
+        <input type="text" id="custom-spec" placeholder="Введите специальность" style="display:none; margin-top:5px;">
+
+        <label>Ожидаемый балл ЕГЭ (сумма):</label>
+        <div class="radio-group">
+            <label><input type="radio" name="score" value="score_1"> 150-200</label><br>
+            <label><input type="radio" name="score" value="score_2"> 200-250</label><br>
+            <label><input type="radio" name="score" value="score_3"> 250-280</label><br>
+            <label><input type="radio" name="score" value="score_4"> 280-310</label>
+        </div>
+
+        <button class="btn" onclick="processData()">Начать расчёт</button>
+    </div>
+
+    <div id="screen-3" class="screen">
+        <div id="loader-view">
+            <div class="spinner" style="border-top: 4px solid var(--color-header-mint);"></div>
+            <h3 id="loader-text">Анализируем проходные баллы 2025 года...</h3>
+        </div>
+
+        <div id="scenario-a" style="display:none;">
+            <h2>Внимание!</h2>
+            <p>Чтобы рассчитать точные шансы, нужно определиться с профессией. В нашем канале мы рассказываем про разные направления...</p>
+            <p><strong>Но держи страховку: Олимпиада по Русскому языку, позволит обеспечить 100% поступление даже если еще не определился со специальностью (подходит всем).</strong></p>
+            <button class="btn" onclick="showFinalScreen('Русский язык')">Посмотреть мой план победы</button>
+        </div>
+
+        <div id="scenario-b" style="display:none;">
+            <div class="result-box">
+                <h2>🔴 Твой шанс только по ЕГЭ: <span id="chance-percent">0%</span></h2>
+            </div>
+            <p style="font-size: 14px; color: var(--color-secondary-dark);">
+                Почему так низко? Расчет примерный. Наша модель учитывает, что топовых мест мало, их в первую очередь 100% занимают олимпиадники, льготники и квотники.
+            </p>
+            <h3 style="margin-top: 30px;">Но... Мы нашли как превратить твои шансы в 100%!</h3>
+            <button class="btn" onclick="showFinalScreen(null)">Посмотреть мой план победы</button>
+        </div>
+    </div>
+
+    <div id="screen-4" class="screen" style="position: relative;">
+        <h2>Твой Персональный План готов!</h2>
+        <p>Мы нашли 12 олимпиад.</p>
+        <p>Ты можешь увидеть ПЕРВУЮ олимпиаду из твоего плана бесплатно:</p>
+
+        <div class="olympiad-card">
+            <h3 id="olymp-name">Олимпиада ...</h3>
+            <p>Уровень: <strong id="olymp-level">1 (Дает БВИ)</strong></p>
+            <p class="deadline">Срок отбора до <span id="olymp-deadline">Дата</span></p>
+            <p class="olympiad-feature" id="olymp-feature">...</p>
+            <p style="font-style: italic; font-size: 14px; margin-top: 10px;">«Реально подготовиться за 3 месяца»</p> 
+            <a href="#" id="card-bot-link" class="link-btn">
+                Забрать полный бесплатный файл по олимпиаде можно в тг боте
+            </a>
+        </div>
+
+        <div style="position: relative;">
+            <div class="blur-box">
+                <div class="olympiad-card"><h3>Московская олимпиада школьников (География)</h3><p>Уровень 1. Крайний срок: 15 декабря.</p><p class="olympiad-feature">Требует умения комплексно мыслить, а не только зубрежки.</p></div>
+                <div class="olympiad-card"><h3>Евразийская лингвистическая олимпиада</h3><p>Уровень 2. Срок: 14 января.</p><p class="olympiad-feature">Идеально подходит лингвистам, которые хотят подтвердить свой высокий уровень без сдачи ЕГЭ на 95+.</p></div>
+                <div class="olympiad-card"><h3>Олимпиада СПбГУ (История/Общ.)</h3><p>Уровень 2. Срок: 14 декабря.</p><p class="olympiad-feature">Самый надежный способ получить БВИ в сам СПбГУ, не требует готовых проектов.</p></div>
+                <div class="olympiad-card"><h3>Олимпиада «Ступени» (метапредметная)</h3><p>Доп. баллы в НИУ ВШЭ. Срок: 18 декабря.</p></div>
+            </div>
+            
+            <div class="overlay-text">
+                <h3>Чтобы открыть полный доступ, переходи в Telegram-бот.</h3>
+                <p>Ты получишь бесплатно:</p>
+                <ul style="text-align: left; padding-left: 20px;">
+                    <li>🔷 Доступ в канал с новыми законами поступления, секретами про ЕГЭ, вузы и олимпиады</li>
+                    <li>🔷 Скидку 50% на индивидуальную полную стратегию поступления без ЕГЭ в любой вуз, курс по профориентации и карту приёмной кампании</li>
+                    <li>🔷 Чек-листы с подборкой самых легких олимпиад</li>
+                </ul>
+                <a href="#" id="main-bot-link" class="btn">Забрать план</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- ЛОГИКА ПРИЛОЖЕНИЯ (ОСТАВЛЕНА БЕЗ ИЗМЕНЕНИЙ) ---
+
+    // База олимпиад (Полный список с особенностями)
+    const olympDatabase = {
+        "Математика": { 
+            name: "Олимпиада «Росатом»", 
+            level: "II (БВИ или 100 баллов по математике в НИЯУ МИФИ)", 
+            deadline: "Очная олимпиада с самого отборочного этапа (16 ноября 2025, прошел)", 
+            feature: "Это очная олимпиада с самого отборочного этапа (16 ноября 2025, прошел). Показывает высокий уровень, но дает отличные льготы." 
+        },
+        "Информатика": { 
+            name: "Innopolis Open", 
+            level: "II (БВИ или 100 баллов по информатике)", 
+            deadline: "Тур 2: 27–28 декабря 2025", 
+            feature: "Проводится в два независимых онлайн-тура, что увеличивает ваши шансы на проход в финал. Задачи разрабатываются при поддержке экспертов VK Education." 
+        },
+        "Обществознание": { 
+            name: "Олимпиада МГИМО", 
+            level: "II (БВИ или 100 баллов по обществознанию в МГИМО)", 
+            deadline: "12 января 2026", 
+            feature: "Победа в этой олимпиаде вполне реальна и является самым надежным способом попасть в МГИМО до основного конкурса." 
+        },
+        "История": { 
+            name: "Олимпиада МГИМО", 
+            level: "II (БВИ или 100 баллов по истории в МГИМО)", 
+            deadline: "12 января 2026", 
+            feature: "Победа в этой олимпиаде вполне реальна и является самым надежным способом попасть в МГИМО до основного конкурса." 
+        },
+        "Физика": { 
+            name: "13-й элемент. ALхимия будущего", 
+            level: "III (Дополнительные баллы в 144 ВУЗа-партнера)", 
+            deadline: "13 января 2026", 
+            feature: "Междисциплинарная олимпиада III уровня — это отличный стартовый уровень для технарей, которые хотят начать свой олимпиадный путь." 
+        },
+        "Химия": { 
+            name: "13-й элемент. ALхимия будущего", 
+            level: "III (Дополнительные баллы в 144 ВУЗа-партнера)", 
+            deadline: "13 января 2026", 
+            feature: "Междисциплинарная олимпиада III уровня — это отличный стартовый уровень для технарей, которые хотят начать свой олимпиадный путь." 
+        },
+        "Русский язык": { 
+            name: "Олимпиада «Океан знаний»", 
+            level: "III (БВИ в ДВФУ или 100 баллов по русскому языку)", 
+            deadline: "9 января 2026", 
+            feature: "Олимпиада III уровня — отличный стартовый, доступный вариант, полностью состоящий из заданий с развернутыми ответами (что легче для тех, кто не любит тесты)." 
+        },
+        "Английский язык": { 
+            name: "Евразийская лингвистическая олимпиада", 
+            level: "II (БВИ или 100 баллов по иностранному языку)", 
+            deadline: "14 января 2026", 
+            feature: "Охватывает широкий спектр языков (от Английского до Японского). Идеально подходит лингвистам, которые хотят подтвердить свой высокий уровень без сдачи ЕГЭ на 95+." 
+        },
+        "Немецкий язык": { 
+            name: "Евразийская лингвистическая олимпиада", 
+            level: "II (БВИ или 100 баллов по иностранному языку)", 
+            deadline: "14 января 2026", 
+            feature: "Охватывает широкий спектр языков (от Английского до Японского). Идеально подходит лингвистам, которые хотят подтвердить свой высокий уровень без сдачи ЕГЭ на 95+." 
+        },
+        "География": { 
+            name: "Московская олимпиада школьников (География)", 
+            level: "I (БВИ или 100 баллов по географии)", 
+            deadline: "15 декабря 2025 (Крайний срок!)", 
+            feature: "Несмотря на Высший уровень, она требует умения комплексно мыслить, а не только зубрежки, что для многих дается проще, чем стандартный тест ЕГЭ." 
+        },
+        // Универсальная страховка
+        "default": { 
+            name: "Олимпиада «Океан знаний» (Русский язык)", 
+            level: "III (Универсальная страховка)", 
+            deadline: "9 января 2026", 
+            feature: "Олимпиада III уровня — отличный стартовый, доступный вариант, полностью состоящий из заданий с развернутыми ответами (подходит для всех, кто ищет БВИ-страховку)." 
+        } 
+    };
+
+    // Данные пользователя
+    let userData = {};
+
+    function nextScreen(screenNum) {
+        document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+        document.getElementById('screen-' + screenNum).classList.add('active');
+    }
+
+    function toggleOtherInput(type) {
+        const select = document.getElementById(type + '-select');
+        const input = document.getElementById('custom-' + type);
+        if (select.value === 'pro_univer' || select.value === 'pro_spec') {
+            input.style.display = 'block';
+        } else {
+            input.style.display = 'none';
+        }
+    }
+
+    function processData() {
+        const classVal = document.getElementById('class-select').value;
+        
+        const checkboxes = document.querySelectorAll('input[name="subjects"]:checked');
+        let subjects = [];
+        checkboxes.forEach((cb) => { subjects.push(cb.value); });
+
+        const scoreEl = document.querySelector('input[name="score"]:checked');
+        const scoreVal = scoreEl ? scoreEl.value : null;
+
+        if (subjects.length === 0 || !scoreVal) {
+            alert("Пожалуйста, выберите предметы и ожидаемый балл.");
+            return;
+        }
+
+        const univerVal = document.getElementById('univer-select').value;
+        const customUniver = document.getElementById('custom-univer').value.trim();
+        const finalUniver = (univerVal === 'pro_univer' && customUniver) ? customUniver : univerVal;
+        
+        const specVal = document.getElementById('spec-select').value;
+        const customSpec = document.getElementById('custom-spec').value.trim();
+        const finalSpec = (specVal === 'pro_spec' && customSpec) ? customSpec : specVal;
+
+        userData = {
+            class: classVal,
+            subjects: subjects,
+            univer: finalUniver, 
+            spec: finalSpec, 
+            score: scoreVal
+        };
+
+        nextScreen(3);
+        
+        const loaderText = document.getElementById('loader-text');
+        
+        setTimeout(() => { loaderText.innerText = "Проверяем возможность поступить без ЕГЭ..."; }, 1500);
+        
+        setTimeout(() => {
+            document.getElementById('loader-view').style.display = 'none';
+            calculateLogic();
+        }, 3000);
+    }
+
+    function calculateLogic() {
+        let isSpecUndefined = (userData.spec === 'undefined');
+        
+        // СЦЕНАРИЙ А: Если Cat_SPEC == UNDEFINED
+        if (isSpecUndefined) {
+            document.getElementById('scenario-a').style.display = 'block';
+            return;
+        }
+
+        // СЦЕНАРИЙ Б: Основной расчет
+        document.getElementById('scenario-b').style.display = 'block';
+
+        let univerType;
+        if (userData.univer.startsWith('pro_') || userData.univer === 'pro_city') {
+            univerType = 'PRO';
+        } else {
+            univerType = 'PREMIUM';
+        }
+        
+        let specType;
+        if (userData.spec.startsWith('pro_')) {
+            specType = 'PRO';
+        } else {
+            specType = 'PREMIUM';
+        }
+        
+        let chance = 0;
+        const score = userData.score; 
+
+        // Матрица шансов (Из ТЗ)
+        if (univerType === 'PREMIUM' && specType === 'PREMIUM') {
+            if (score === 'score_1') chance = 1;
+            else if (score === 'score_2') chance = 10;
+            else if (score === 'score_3') chance = 45; 
+            else if (score === 'score_4') chance = 65; 
+        } else if ((univerType === 'PREMIUM' && specType === 'PRO') || (univerType === 'PRO' && specType === 'PREMIUM')) {
+            if (score === 'score_1') chance = 5;
+            else if (score === 'score_2') chance = 15;
+            else if (score === 'score_3') chance = 45;
+            else if (score === 'score_4') chance = 65;
+        } else if (univerType === 'PRO' && specType === 'PRO') {
+            if (score === 'score_1') chance = 15;
+            else if (score === 'score_2') chance = 30;
+            else if (score === 'score_3') chance = 60;
+            else if (score === 'score_4') chance = 70;
+        }
+
+        userData.chance = chance;
+        
+        document.getElementById('chance-percent').innerText = chance + "%";
+    }
+
+    function showFinalScreen(forcedSubject) {
+        nextScreen(4);
+        
+        // 1. Определение правильной олимпиады
+        let subject = forcedSubject;
+        if (!subject) {
+            // Приоритеты для бесплатного плана: Математика > Информатика > География > Обществознание > История > Иностранные языки > Русский язык (Универсальный)
+            const prioritySubjects = ["Математика", "Информатика", "География", "Обществознание", "История", "Английский язык", "Немецкий язык", "Французский язык", "Испанский язык", "Китайский язык", "Физика", "Химия", "Русский язык"];
+            let foundSubject = userData.subjects.find(sub => prioritySubjects.includes(sub));
+            
+            // Если выбранный предмет не в ТОП-5, или не выбран вообще, используем "default" (Русский язык)
+            subject = foundSubject || "default";
+        }
+
+        const olymp = olympDatabase[subject];
+        document.getElementById('olymp-name').innerText = olymp.name;
+        document.getElementById('olymp-level').innerText = olymp.level;
+        document.getElementById('olymp-deadline').innerText = olymp.deadline;
+        document.getElementById('olymp-feature').innerText = olymp.feature;
+
+
+        // 2. СОЗДАНИЕ УНИКАЛЬНОЙ ССЫЛКИ
+        let queryParams = new URLSearchParams();
+        
+        for (const key in userData) {
+            if (Array.isArray(userData[key])) {
+                 queryParams.append(key, userData[key].join(','));
+            } else {
+                queryParams.append(key, userData[key]);
+            }
+        }
+
+        queryParams.append('olymp_name', olymp.name);
+        
+        // ФИНАЛЬНАЯ ССЫЛКА НА БОТ (@anywayhelp_bot)
+        const finalBotLink = "https://t.me/anywayhelp_bot?" + queryParams.toString(); 
+
+        // 3. Обновляем все ссылки на Экране 4
+        document.getElementById('main-bot-link').href = finalBotLink;
+        document.getElementById('card-bot-link').href = finalBotLink; 
+    }
+</script>
+
+</body>
+</html>
